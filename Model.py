@@ -12,7 +12,7 @@ class RenderParameter:
         self.attenuation_coefficient = parameter_vector[..., 0]
         self.reflection_coefficient = parameter_vector[..., 1] 
         self.border_probability = parameter_vector[..., 2]
-        self.scattering_density = parameter_vector[..., 3]
+        self.scattering_density_coefficient = parameter_vector[..., 3]
         self.scattering_amplitude = parameter_vector[..., 4]
 
 class NerualRadianceField(nn.Module):
@@ -25,7 +25,7 @@ class NerualRadianceField(nn.Module):
         self.width = 256
         self.depth = 8
         self.positional_encoding = PositionalEncoding(self.positional_encoding_dim)
-        self.mlp_input_dim = self.positional_encoding_dim * self.query_dim # positional encoding is done separately on each query dimension
+        self.mlp_input_dim = self.positional_encoding_dim * self.query_dim + self.query_dim # positional encoding is done separately on each query dimension
         self.mlp1 = MLP(
              self.mlp_input_dim, 
             [self.width for _ in range(self.depth // 2)]
@@ -36,12 +36,13 @@ class NerualRadianceField(nn.Module):
         )
 
     def forward(self, query):
-        query = self.positional_encoding(query).flatten(start_dim=-2, end_dim=-1)
-        parameter_vector = self.mlp2( torch.concat([query, self.mlp1(query)], dim=-1) )
-        parameter_vector[..., 0] = torch.abs(parameter_vector[..., 0])
-        parameter_vector[..., 1:] = torch.sigmoid(parameter_vector[..., 1:])
+        pe = self.positional_encoding(query).flatten(start_dim=-2, end_dim=-1)
+        query = torch.concat([query, pe], dim=-1)
+        mlp_output = self.mlp2( torch.concat([query, self.mlp1(query)], dim=-1) )
+        parameter_vector = torch.empty_like(mlp_output)
+        parameter_vector[..., 0] = torch.abs(mlp_output[..., 0])
+        parameter_vector[..., 1:] = torch.sigmoid(mlp_output[..., 1:])
         return parameter_vector
-
 
 class PositionalEncoding:
     # see formula (4) of paper: "NeRF: Representing Scenes as Neural Radiance Fields for View Synthesis", output_dim == 2 * L
@@ -92,7 +93,8 @@ def test_nerf():
     query = torch.ones(batch_size, nerf.query_dim)
     out = nerf(query)
     assert out.shape == (batch_size, nerf.output_dim)
-    
+    print([_.shape for _ in nerf.parameters()])
+
 if __name__ == '__main__':
     test_positional_encoding()
     test_nerf()
