@@ -15,25 +15,28 @@ from Render import render_ray_bundle
 
 
 
-images = np.load('./data/images.npy')
-poses = np.load('./data/poses.npy')
+images = np.load('.\data\images.npy')
+poses = np.load('.\data\poses.npy')
 images = images.astype(np.float32) / 255
-images, poses = images[:100], poses[:100]
+images, poses = images[::10], poses[::10]
 
-nerf = NerualRadianceField()
-nerf.load_state_dict(torch.load('nerf_100.pt'))
 i = 0
 pcds = []
 for image, pose in tqdm(zip(images, poses), total=len(poses)):
-    print(pose)
     pcd = od.geometry.PointCloud()
     pose[:3, -1] *= 0.001
     image_pt, pose = torch.from_numpy(image).to(device), torch.from_numpy(pose).to(device)
-    rb = pose_to_ray_bundle_linear(pose)
+    offset = torch.tensor([
+        [0, 1, 0, 0],
+        [0, 0, 1, 0],
+        [1, 0, 0, 0],
+        [0, 0, 0, 1],
+    ], dtype=torch.float)
+    rb = pose_to_ray_bundle_linear(pose, offset)
     rb.sample(0, 140 * 0.001, 80 * 0.001, image.shape[0], image.shape[1])
-    pcd.points = od.utility.Vector3dVector(rb.points.numpy(force=True).reshape(-1, 3)[::100, :])
-    c = (i % 255) / 255
-    pcd.paint_uniform_color([c, c, c])
+    pcd.points = od.utility.Vector3dVector(rb.points.numpy(force=True).reshape(-1, 3)[::10, :])
+    c = i / len(poses)
+    pcd.paint_uniform_color([c, 1 - c, 0])
     pcds.append(pcd)
     i += 1
 od.visualization.draw_geometries(pcds)

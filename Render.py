@@ -8,7 +8,7 @@ from utils import add_a_leading_zero, add_a_leading_one, plot_points, repeat_las
 
 gaussian_kernal_1d = torch.tensor([0.2790,	0.4420,	0.2790]) # sigma = 0.5
 gaussian_kernal_2d = gaussian_kernal_1d.reshape(-1, 1) * gaussian_kernal_1d.reshape(1, -1)
-relaxation_temperature = torch.tensor([0.01])
+relaxation_temperature = torch.tensor([0.1])
 
 def render_ray(ray: Ray, render_parameter: RenderParameter):
     # renders a single ray, uses 1d conv instead of 2d conv in the origional implementation

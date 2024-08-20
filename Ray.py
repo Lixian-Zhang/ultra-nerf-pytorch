@@ -74,7 +74,7 @@ class RayBundleLinear:
         self.origin = origin.reshape(1, 3)                # origin of 
         self.direction = normalize(direction.reshape(1, 3), dim=1)          # the center ray direction direction must be perpendicular to plane_normal 
         self.plane_normal = normalize(plane_normal.reshape(1, 3), dim=1)    # normal vector of the plane where the rays inhabit
-        if not torch.allclose(torch.dot(self.direction.flatten(), self.plane_normal.flatten()), torch.zeros(1), atol=1e-3):
+        if not torch.allclose(torch.dot(self.direction.flatten(), self.plane_normal.flatten()), torch.zeros(1), atol=5e-2):
             raise ValueError(f'Direction vector and plane normal vector must be perpendicular to each other, got {self.direction} and {self.plane_normal} whose dot product is {torch.dot(self.direction.flatten(), self.plane_normal.flatten())}')
         self.points = None
         self.distances_to_origin = None
@@ -108,9 +108,9 @@ def pose_to_ray_bundle(pose):
     central_angle = torch.pi / 2
     return RayBundle(origin, direction, plane_normal, central_angle)
    
-def pose_to_ray_bundle_linear(pose):
-    origin = pose[:3, -1]
-    rot_mat = pose[:3, :3]
+def pose_to_ray_bundle_linear(pose, offset=torch.eye(4)):
+    origin = pose[:3, -1] + offset[:3, -1]
+    rot_mat = pose[:3, :3] @ offset[:3, :3]
     d = torch.linalg.det(rot_mat)
     if not torch.allclose(d, torch.ones_like(d), rtol=0.001):
         raise ValueError(f'Invalid pose, determinant of the rotation matrix is {d}.')
