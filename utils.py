@@ -1,15 +1,13 @@
 import torch
-from torch.nn.functional import pad
 
 def cyclically_shift_dims_left(tensor: torch.Tensor):
     order = tuple(range(1, len(tensor.shape))) + (0, )
     return tensor.permute(order)
 
-def add_a_leading_zero(tensor: torch.Tensor):
-    if len(tensor.shape) == 1:
-        return pad(tensor, pad=(1, 0), mode='constant', value=0)
-    elif len(tensor.shape) == 2:
-        return pad(tensor, pad=(0, 0, 1, 0), mode='constant', value=0)
+def add_a_leading_zero(tensor: torch.Tensor, dim=0):
+    dim %= len(tensor.shape)
+    zero = torch.zeros_like(torch.index_select(tensor, dim=dim, index=torch.tensor([0], dtype=torch.long)))
+    return torch.concat([zero, tensor], dim=dim)
 
 def add_a_leading_one(tensor: torch.Tensor, dim=0):
     dim %= len(tensor.shape)

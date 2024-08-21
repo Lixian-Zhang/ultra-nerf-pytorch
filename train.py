@@ -1,7 +1,6 @@
 import torch
 from torch.optim import lr_scheduler
 import numpy as np
-from numpy.random import Generator
 from tqdm import tqdm, trange
 import wandb
 import imageio
@@ -10,7 +9,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 torch.set_default_device(device)
 torch.autograd.set_detect_anomaly(True)
 
-from pytorch_msssim import SSIM, MS_SSIM
+from pytorch_msssim import MS_SSIM
 
 from Ray import pose_to_ray_bundle_linear
 from Model import NerualRadianceField

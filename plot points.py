@@ -1,17 +1,14 @@
 import torch
 import numpy as np
-from tqdm import tqdm, trange
-import imageio
+from tqdm import tqdm
 import open3d as od
+
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 torch.set_default_device(device)
 torch.autograd.set_detect_anomaly(True)
 
 from pytorch_msssim import SSIM
-
 from Ray import pose_to_ray_bundle_linear
-from Model import NerualRadianceField
-from Render import render_ray_bundle
 
 images = np.load('.\data\images.npy')
 poses = np.load('.\data\poses.npy')

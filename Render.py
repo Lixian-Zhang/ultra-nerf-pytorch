@@ -1,40 +1,12 @@
 import torch
-import numpy as np
-from torch.nn.functional import conv1d, conv2d
+from torch.nn.functional import conv2d
 
 from Model import RenderParameter, NerualRadianceField
-from Ray import Ray, RayBundle, pose_to_ray_bundle, pose_to_ray_bundle_linear
-from utils import add_a_leading_zero, add_a_leading_one, plot_points, repeat_last_element, sample_bernoulli
+from Ray import RayBundle, pose_to_ray_bundle_linear
+from utils import add_a_leading_one, repeat_last_element, sample_bernoulli
 
 gaussian_kernal_1d = torch.tensor([0.2790,	0.4420,	0.2790]) # sigma = 0.5
 gaussian_kernal_2d = gaussian_kernal_1d.reshape(-1, 1) * gaussian_kernal_1d.reshape(1, -1)
-
-def render_ray(ray: Ray, render_parameter: RenderParameter):
-    # renders a single ray, uses 1d conv instead of 2d conv in the origional implementation
-    distances_to_origin = ray.get_distances_to_origin()
-    distances_between_points = add_a_leading_zero( torch.abs(distances_to_origin[:-1] - distances_to_origin[1:]) )
-    attenuation_transmission = torch.exp( -torch.cumsum(distances_between_points * render_parameter.attenuation_coefficient, dim=0) )
-    
-    border_indicator = torch.bernoulli(render_parameter.border_probability)
-    reflection_transmission = 1 - render_parameter.reflection_coefficient * border_indicator
-    reflection_transmission = add_a_leading_one( torch.cumprod(reflection_transmission[:-1], dim=0) )
-    
-    border_indicator = border_indicator.unsqueeze(0).unsqueeze(0)
-    kernel = gaussian_kernal_1d.unsqueeze(0).unsqueeze(0)
-    border_convolution = conv1d(border_indicator, kernel, padding='same')
-    border_convolution = border_convolution.squeeze()
-    
-    scatter_density = torch.bernoulli(render_parameter.scattering_density_coefficient)
-    scatterers_map = scatter_density * render_parameter.scattering_amplitude
-    scatterers_map = scatterers_map.unsqueeze(0).unsqueeze(0)
-    psf_scatter = conv1d(scatterers_map, kernel, padding='same').squeeze()
-    
-    transmission = attenuation_transmission * reflection_transmission
-    
-    b = transmission * psf_scatter
-    r = transmission * render_parameter.reflection_coefficient * border_convolution
-    intensity_map = b + r
-    return intensity_map
 
 def render_ray_bundle(ray_bundle: RayBundle, nerf_model: NerualRadianceField):
     # renders a ray bundle 
