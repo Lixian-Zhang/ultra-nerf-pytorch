@@ -7,7 +7,6 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 torch.set_default_device(device)
 torch.autograd.set_detect_anomaly(True)
 
-from pytorch_msssim import SSIM
 from Ray import pose_to_ray_bundle_linear
 
 images = np.load('.\data\images.npy')
