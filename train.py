@@ -52,11 +52,11 @@ l2 = torch.nn.MSELoss(reduction='mean')
 nerf = NerualRadianceField()
 start_lr = 1e-3
 end_lr = 1e-5
-epochs = 200
+epochs = 100
 adam = torch.optim.Adam(nerf.parameters(), lr=start_lr)
 scheduler = lr_scheduler.ExponentialLR(adam, gamma=pow(end_lr / start_lr, 1 / epochs))
 # scheduler = lr_scheduler.StepLR(adam, 33, 0.1)
-weight_ssim = 5e-2
+weight_ssim = 1 - 1e-2
 weight_l2 = 1 - weight_ssim
 rng = np.random.default_rng()
 for epoch in trange(1, epochs + 1, ncols=80, bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'):

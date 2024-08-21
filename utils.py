@@ -38,13 +38,25 @@ def plot_points(points, ref=None):
     ax.set_zlabel('z')
     fig.savefig('points.png')
 
+def sample_bernoulli(probabilities_yielding_one):
+    probabilities_yielding_zero = 1 - probabilities_yielding_one
+    logits = torch.logit(torch.stack([probabilities_yielding_one, probabilities_yielding_zero], dim=-1), eps=1e-4)
+    return torch.nn.functional.gumbel_softmax(logits, tau=1e-1, hard=True)[..., 0]
+
 def test():
-    a = torch.randint(0, 10, (3, 5))
-    b = repeat_last_element(a)
-    c = add_a_leading_one(a, -1)
-    print(a)
-    print(b)
-    print(c)
+    p = torch.rand(2, 3, requires_grad=True)
+    print(p)
+    with torch.no_grad():
+        frequency = torch.zeros_like(p)
+        for _ in range(100):
+            frequency += sample_bernoulli(p)
+        print(p - frequency / 100.)
+
+    s = sample_bernoulli(p)
+    print(s)
+    loss = torch.nn.functional.mse_loss(s, -1 * torch.ones_like(s))
+    loss.backward()
+    print(p.grad)
 
 
 if __name__ == '__main__':
