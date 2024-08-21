@@ -13,8 +13,6 @@ from Ray import pose_to_ray_bundle_linear
 from Model import NerualRadianceField
 from Render import render_ray_bundle
 
-
-
 images = np.load('.\data\images.npy')
 poses = np.load('.\data\poses.npy')
 images = images.astype(np.float32) / 255

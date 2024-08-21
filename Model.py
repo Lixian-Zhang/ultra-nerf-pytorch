@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 from torchvision.ops import MLP
+from torchvision import transforms
 
 from utils import cyclically_shift_dims_left
 
@@ -17,8 +18,9 @@ class RenderParameter:
 
 class NerualRadianceField(nn.Module):
 
-    def __init__(self):
+    def __init__(self, input_transform=transforms.Lambda(lambda x: x)):
         super().__init__()
+        self.input_transform = input_transform
         self.positional_encoding_dim = 20
         self.query_dim  = 3 # 3 for xyz in 3D space
         self.output_dim = 5 # 5 element parameter vector for physics-inspired rendering, see: "Ultra-NeRF: Neural Radiance Fields for Ultrasound Imaging"
@@ -36,9 +38,10 @@ class NerualRadianceField(nn.Module):
         )
 
     def forward(self, query):
-        pe = self.positional_encoding(query).flatten(start_dim=-2, end_dim=-1)
-        query = torch.concat([query, pe], dim=-1)
-        mlp_output = self.mlp2( torch.concat([query, self.mlp1(query)], dim=-1) )
+        query_transformed = self.input_transform(query)
+        pe = self.positional_encoding(query_transformed).flatten(start_dim=-2, end_dim=-1)
+        query_transformed = torch.concat([query_transformed, pe], dim=-1)
+        mlp_output = self.mlp2( torch.concat([query_transformed, self.mlp1(query_transformed)], dim=-1) )
         parameter_vector = torch.empty_like(mlp_output)
         parameter_vector[..., 0] = torch.abs(mlp_output[..., 0])
         parameter_vector[..., 1:] = torch.sigmoid(mlp_output[..., 1:])

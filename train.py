@@ -16,14 +16,14 @@ from Ray import pose_to_ray_bundle_linear
 from Model import NerualRadianceField
 from Render import render_ray_bundle
 
-# run = wandb.init(project='ultra-nerf-pytorch')
+run = wandb.init(project='ultra-nerf-pytorch')
 
 # images = np.load('./data/images.npy')
 # poses = np.load('./data/poses.npy')
 images = np.load('.\data\images.npy')
 poses = np.load('.\data\poses.npy')
 images = images.astype(np.float32) / 255
-images, poses = images[:1], poses[:1]
+images, poses = images[:100], poses[:100]
 offset = torch.tensor([
         [0, 1, 0, 0],
         [0, 0, 1, 0],
@@ -34,10 +34,25 @@ offset = torch.tensor([
 ssim = MS_SSIM(data_range=1.0, size_average=True, channel=1)
 l2 = torch.nn.MSELoss(reduction='mean')
 
+# mean = 0
+# min_coordinate, max_coordinate = 1e10, -1e10
+# for pose in poses:
+#     pose = torch.from_numpy(pose).to(device)
+#     pose[:3, -1] *= 0.001
+#     ray_bundle = pose_to_ray_bundle_linear(pose, offset)
+#     ray_bundle.sample(0, 140 * 0.001, 80 * 0.001, images[0].shape[0], images[0].shape[1])
+#     mean += ray_bundle.points.mean()
+#     if ray_bundle.points.min() < min_coordinate:
+#         min_coordinate = ray_bundle.points.min()
+#     if ray_bundle.points.max() > max_coordinate:
+#         max_coordinate = ray_bundle.points.max()
+# print(mean, min_coordinate, max_coordinate)
+# exit()
+
 nerf = NerualRadianceField()
 start_lr = 1e-3
 end_lr = 1e-5
-epochs = 2000
+epochs = 200
 adam = torch.optim.Adam(nerf.parameters(), lr=start_lr)
 scheduler = lr_scheduler.ExponentialLR(adam, gamma=pow(end_lr / start_lr, 1 / epochs))
 # scheduler = lr_scheduler.StepLR(adam, 33, 0.1)
@@ -48,6 +63,7 @@ for epoch in trange(1, epochs + 1, ncols=80, bar_format='{l_bar}{bar:10}{r_bar}{
     perm = np.arange(len(images)) # rng.permutation(len(images))
     for image, pose in tqdm(zip(images[perm], poses[perm]), ncols=80, total=len(images), bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'):
         image, pose = torch.from_numpy(image).to(device), torch.from_numpy(pose).to(device)
+        pose[:3, -1] *= 0.001
         ray_bundle = pose_to_ray_bundle_linear(pose, offset)
         ray_bundle.sample(0, 140 * 0.001, 80 * 0.001, image.shape[0], image.shape[1])
         rendered_image = render_ray_bundle(ray_bundle, nerf)
@@ -65,7 +81,7 @@ for epoch in trange(1, epochs + 1, ncols=80, bar_format='{l_bar}{bar:10}{r_bar}{
 
     scheduler.step()
 
-    if False:
+    if True:
         run.log({
             'ssim'  : loss_ssim.item(),
             'l2'    : loss_l2.item(),
